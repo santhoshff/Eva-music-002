@@ -45,6 +45,7 @@ jobs:
           npm install @capacitor/core @capacitor/cli @capacitor/android
           npx cap init "Eva Music" com.santhosh.evamusic --web-dir dist
           npx cap add android
+          cp -R android-res/. android/app/src/main/res/
           # Enable cleartext HTTP traffic for media streams if needed
           sed -i 's/<application/<application android:usesCleartextTraffic="true"/' android/app/src/main/AndroidManifest.xml
           # Fix Kotlin stdlib duplicate classes

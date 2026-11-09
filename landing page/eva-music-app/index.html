@@ -1210,10 +1210,10 @@ function loadCurrent(autoplay){
 }
 audio.addEventListener('play', ()=>{ S.playing = true; syncPlayState(); });
 audio.addEventListener('pause', ()=>{ if (audio.ended) return; S.playing = false; syncPlayState(); });
-audio.addEventListener('loadedmetadata', ()=>{ const t=TR[S.cur]; if (t && isFinite(audio.duration) && audio.duration>0 && Math.abs(audio.duration-t.dur)>1.5){ t.dur = audio.duration; if (S.player){ const sv=$('#seekSvg'); sv && sv.setAttribute('aria-valuemax', Math.floor(t.dur)); } } });
+audio.addEventListener('loadedmetadata', ()=>{ const t=TR[S.cur]; if (t && isFinite(audio.duration) && audio.duration>0 && Math.abs(audio.duration-t.dur)>1.5){ t.dur = audio.duration; if (S.player){ const sv=$('#seekSvg'); sv && sv.setAttribute('aria-valuemax', Math.floor(t.dur)); } } updateMediaSessionPosition(); });
 audio.addEventListener('timeupdate', ()=>{
   if (typeof dragging!=='undefined' && dragging) return;
-  S.pos = audio.currentTime; updateTick();
+  S.pos = audio.currentTime; updateTick(); updateMediaSessionPosition();
   if (!scrobbled && S.cur && audio.currentTime > 8){ scrobbled = S.cur; recordPlay(S.cur); }
 });
 audio.addEventListener('ended', ()=>nextTrack(true));
@@ -1236,18 +1236,39 @@ async function recordPlay(id){
   refresh('home');
   try { await api('/api/library/history', {method:'POST', body:Object.assign(meta(id), {msPlayed:Math.round(audio.currentTime*1000)})}); } catch(e){}
 }
-function seekTo(t){ S.pos = clamp(t, 0, dur(S.cur)); if (isFinite(S.pos)) audio.currentTime = S.pos; updateTick(); }
+function seekTo(t){ S.pos = clamp(t, 0, dur(S.cur)); if (isFinite(S.pos)) audio.currentTime = S.pos; updateTick(); updateMediaSessionPosition(); }
+function updateMediaSessionPosition(){
+  if (!('mediaSession' in navigator) || typeof navigator.mediaSession.setPositionState!=='function' || !S.cur) return;
+  const duration = isFinite(audio.duration) && audio.duration>0 ? audio.duration : dur(S.cur);
+  if (!isFinite(duration) || duration<=0) return;
+  try {
+    navigator.mediaSession.setPositionState({duration, playbackRate:audio.playbackRate||1, position:clamp(audio.currentTime||0, 0, duration)});
+  } catch(error) {
+    console.warn('[Eva Music] Media session position update failed.', error);
+  }
+}
 function setMediaSession(){
-  if (!('mediaSession' in navigator) || !S.cur) return;
+  if (!('mediaSession' in navigator) || !S.cur || typeof MediaMetadata==='undefined') return;
   const t = TR[S.cur], al = ALB[t.al];
   try {
-    navigator.mediaSession.metadata = new MediaMetadata({title:t.title, artist:ART[t.ar].name, album:al.title, artwork: al.cover ? [{src:al.cover, sizes:'500x500'}] : []});
-    navigator.mediaSession.setActionHandler('play', ()=>audio.play());
-    navigator.mediaSession.setActionHandler('pause', ()=>audio.pause());
-    navigator.mediaSession.setActionHandler('nexttrack', ()=>nextTrack(false));
-    navigator.mediaSession.setActionHandler('previoustrack', ()=>prevTrack());
-    navigator.mediaSession.setActionHandler('seekto', e=>seekTo(e.seekTime));
-  } catch(e){}
+    const session = navigator.mediaSession;
+    session.metadata = new MediaMetadata({title:t.title, artist:ART[t.ar].name, album:al.title, artwork:[{src:art(al)}]});
+    const handlers = {
+      play:()=>audio.play().catch(error=>console.warn('[Eva Music] Media session playback failed.', error)),
+      pause:()=>audio.pause(),
+      nexttrack:()=>nextTrack(false),
+      previoustrack:()=>prevTrack(),
+      seekto:event=>{ if (isFinite(event.seekTime)) seekTo(event.seekTime); }
+    };
+    for (const [action, handler] of Object.entries(handlers)){
+      try { session.setActionHandler(action, handler); }
+      catch(error){ console.warn(`[Eva Music] Media session action "${action}" is unavailable.`, error); }
+    }
+    session.playbackState = S.playing ? 'playing' : 'paused';
+    updateMediaSessionPosition();
+  } catch(error) {
+    console.warn('[Eva Music] Media session metadata setup failed.', error);
+  }
 }
 
 /* ---------- views ---------- */
@@ -1262,7 +1283,7 @@ const trackRow = (t, o={}) => {
 };
 const backBtn = (cls='') => `<button class="ibtn ${cls}" data-act="back" aria-label="Back">${ic('back')}</button>`;
 
-const LOGO_ICON = 'data:image/webp;base64,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';
+const LOGO_ICON = './icons/eva-music-mark.png';
 const ICONNAMES = {default:['Default','Eva logo • Charcoal badge'], white:['Pure White','Eva logo • White badge'], black:['Obsidian Black','Eva logo • Black badge']};
 const logoBadge = (v, big) => `<span class="lbadge v-${v}${big?' big':''}"><img src="${LOGO_ICON}" alt=""></span>`;
 const listenMin = () => { const m = Math.round(HISTORY.reduce((n,i)=>n+(TR[i]?TR[i].dur:0),0)/60); return m>=60 ? Math.floor(m/60)+'h '+(m%60)+'m' : m+'m'; };
@@ -1763,6 +1784,8 @@ function syncPlayState(){
   player.classList.toggle('playing', S.playing); player.classList.toggle('paused', !S.playing);
   const big = $('#ppBig'); if(big){ big.innerHTML = ic(S.playing?'pause':'play'); big.setAttribute('aria-label', S.playing?'Pause':'Play'); }
   const pp = $('#mini .pp'); if(pp){ pp.innerHTML = ic(S.playing?'pause':'play'); pp.setAttribute('aria-label', S.playing?'Pause':'Play'); }
+  if ('mediaSession' in navigator && S.cur) navigator.mediaSession.playbackState = S.playing ? 'playing' : 'paused';
+  updateMediaSessionPosition();
   loop();
 }
 let raf = 0;
@@ -2135,6 +2158,8 @@ document.addEventListener('keydown', e=>{
 
 /* ---------- installable app (PWA): icon + manifest generated at runtime ---------- */
 function setupApp(){
+  const splashLogo = $('#splash img');
+  if (splashLogo) splashLogo.src = './eva-music-logo.png';
   const img = new Image();
   img.onload = ()=>{
     try {
