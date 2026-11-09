@@ -87,7 +87,7 @@ export const SongInstallModal: React.FC<SongInstallModalProps> = ({
   const handleInstallUploaded = () => {
     if (uploadedFiles.length === 0) return;
     onInstallTracks(uploadedFiles);
-    setSuccessMessage(`Successfully installed ${uploadedFiles.length} song(s) to your VAAN library!`);
+    setSuccessMessage(`Successfully installed ${uploadedFiles.length} song(s) to your Eva library!`);
     setUploadedFiles([]);
     setTimeout(() => {
       setSuccessMessage(null);
@@ -166,7 +166,7 @@ export const SongInstallModal: React.FC<SongInstallModalProps> = ({
               <Sparkles size={20} />
             </div>
             <div>
-              <h2 className="text-xl font-black text-slate-900">Install Songs to VAAN</h2>
+              <h2 className="text-xl font-black text-slate-900">Install Songs to Eva</h2>
               <p className="text-xs font-semibold text-slate-500">
                 Import local audio files or install curated hit bundles
               </p>

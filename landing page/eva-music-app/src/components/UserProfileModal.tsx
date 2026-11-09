@@ -89,7 +89,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   };
 
   const handleShareProfile = () => {
-    navigator.clipboard?.writeText?.(`https://vaanmusic.app/@${profile.handle}`);
+    navigator.clipboard?.writeText?.(`https://evamusic.app/@${profile.handle}`);
     setIsCopied(true);
     setTimeout(() => setIsCopied(false), 2000);
   };
@@ -324,7 +324,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
               <div className="p-4 rounded-2xl bg-gradient-to-r from-purple-900/40 via-pink-900/30 to-slate-900 border border-pink-500/30 space-y-2">
                 <div className="flex items-center gap-2 text-pink-400">
                   <Sparkles size={16} />
-                  <h4 className="text-xs font-extrabold uppercase tracking-wider">VAAN AI Music Match</h4>
+                  <h4 className="text-xs font-extrabold uppercase tracking-wider">Eva AI Music Match</h4>
                 </div>
                 <p className="text-2xl font-black text-white">98% Match ✨</p>
                 <p className="text-xs text-slate-300 leading-relaxed">

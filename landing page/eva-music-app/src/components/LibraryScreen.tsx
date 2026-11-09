@@ -78,7 +78,7 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({
           </div>
           <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100">No liked songs yet</h4>
           <p className="text-xs text-slate-400 dark:text-slate-400 max-w-xs mx-auto">
-            Tap the heart icon on any song across VAAN Music to add it to your personal library.
+            Tap the heart icon on any song across Eva Music to add it to your personal library.
           </p>
         </div>
       ) : (

@@ -30,22 +30,11 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <header className="relative flex items-center justify-between px-6 pt-6 pb-4 w-full max-w-md mx-auto">
-      {/* Left Logo / Brand Title */}
-      <div className="flex items-center gap-3">
-        <div className="relative group cursor-pointer active:scale-95 transition-transform" title="VAAN Music">
-          <div className="absolute -inset-0.5 bg-gradient-to-tr from-purple-500 via-pink-400 to-indigo-500 rounded-2xl blur-sm opacity-70 group-hover:opacity-100 transition duration-300" />
-          <div className="relative w-11 h-11 rounded-2xl bg-white/90 dark:bg-slate-900/90 backdrop-blur-md p-1.5 border-2 border-white/90 dark:border-white/10 shadow-sm flex items-center justify-center">
-            <img
-              src="/eva-logo.svg"
-              alt="VAAN MUSIC"
-              className="w-full h-full object-contain transition-all"
-            />
-          </div>
-        </div>
+      <div>
         <div>
           <div className="flex items-center gap-1.5">
             <h1 className="text-xl font-extrabold tracking-tight text-slate-900 dark:text-white font-sans transition-colors">
-              {title || 'VAAN MUSIC'}
+              {title || 'EVA MUSIC'}
             </h1>
             {!title && (
               <span className="p-1 rounded-full bg-purple-100 dark:bg-purple-900/60 text-purple-600 dark:text-purple-300 transition-colors">

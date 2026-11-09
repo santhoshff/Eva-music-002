@@ -11,7 +11,7 @@ const API_BASE = isDeployed
   : (import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080/api');
 
 /**
- * Backend API Client Service for VAAN AI Music App
+ * Backend API Client Service for Eva AI Music App
  */
 export async function apiSearch(query: string, type: string = 'song'): Promise<Track[]> {
   try {

@@ -1,5 +1,5 @@
 /**
- * VAAN AI Music - Native High-Fidelity Audio Engine
+ * Eva AI Music - Native High-Fidelity Audio Engine
  * Plays authentic song streams directly via HTML5 Audio with instant buffering,
  * MediaSession lock screen integration, and zero random BGM fallbacks.
  */
@@ -632,7 +632,7 @@ class AudioEngine {
       navigator.mediaSession.metadata = new MediaMetadata({
         title: track.title,
         artist: track.artist,
-        album: track.album || 'VAAN AI Music',
+        album: track.album || 'Eva AI Music',
         artwork,
       });
 

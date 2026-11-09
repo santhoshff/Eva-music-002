@@ -77,7 +77,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onBack, onLoginSuccess
           throw error;
         }
 
-        setSuccessMsg('Account created successfully! Welcome to VAAN Music.');
+        setSuccessMsg('Account created successfully! Welcome to Eva Music.');
         setTimeout(() => {
           onLoginSuccess(data.user || { email, user_metadata: { name } });
           onBack();
@@ -115,8 +115,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onBack, onLoginSuccess
     setSuccessMsg('Signing in with Demo Account...');
 
     try {
-      const demoEmail = 'demo.listener@vaanmusic.app';
-      const demoPass = 'VaanMusic2025!';
+      const demoEmail = 'demo.listener@evamusic.app';
+      const demoPass = 'EvaMusic2025!';
 
       // Try actual Supabase login or demo fallback
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -148,7 +148,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onBack, onLoginSuccess
     } catch {
       const mockUser = {
         id: 'demo-user-eva',
-        email: 'samantha@vaanmusic.app',
+        email: 'samantha@evamusic.app',
         user_metadata: {
           name: 'Samantha Vibe',
           avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
@@ -189,19 +189,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onBack, onLoginSuccess
 
         {/* Hero Branding */}
         <div className="text-center mt-6 space-y-2">
-          <div className="inline-flex relative group">
-            <div className="absolute -inset-1 bg-gradient-to-tr from-purple-600 via-pink-500 to-indigo-600 rounded-3xl blur-md opacity-70 group-hover:opacity-100 transition duration-300" />
-            <div className="relative w-16 h-16 rounded-2xl bg-white p-2.5 border-2 border-white shadow-md flex items-center justify-center mx-auto">
-              <img
-                src="/eva-logo.svg"
-                alt="VAAN Music"
-                className="w-full h-full object-contain"
-              />
-            </div>
-          </div>
-
           <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight pt-2">
-            {mode === 'signin' ? 'Welcome to VAAN Music' : 'Join VAAN Music'}
+            {mode === 'signin' ? 'Welcome to Eva Music' : 'Join Eva Music'}
           </h2>
           <p className="text-xs text-slate-500 max-w-xs mx-auto">
             Sync your liked songs, playlists & audio preferences across all your devices
@@ -325,7 +314,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onBack, onLoginSuccess
               placeholder="yo@gxuri.me"
               placeholders={[
                 'yo@gxuri.me',
-                'samantha@vaanmusic.app',
+                'samantha@evamusic.app',
                 'your.email@gmail.com',
                 'synthwave@beats.io',
                 'musiclover@cosmic.fm'
@@ -374,7 +363,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onBack, onLoginSuccess
             ) : mode === 'signin' ? (
               <>
                 <LogIn size={18} />
-                <span>Sign In to VAAN Music</span>
+                <span>Sign In to Eva Music</span>
               </>
             ) : (
               <>

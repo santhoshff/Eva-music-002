@@ -31,7 +31,7 @@ import { NavTab, Track, Artist, Playlist, GenreCategory, UserProfile } from './t
 const DEFAULT_GUEST_PROFILE: UserProfile = {
   name: 'Guest Listener',
   handle: '@guest',
-  email: 'guest@vaanmusic.app',
+  email: 'guest@evamusic.app',
   avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
   coverUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=800&q=80',
   isPro: false,
@@ -75,7 +75,7 @@ const buildUserProfile = (user: any): UserProfile => {
   return {
     name: displayName,
     handle: cleanHandle,
-    email: user.email || 'user@vaanmusic.app',
+    email: user.email || 'user@evamusic.app',
     avatarUrl: avatar,
     coverUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=800&q=80',
     isPro: true,
@@ -691,7 +691,7 @@ export default function App() {
           onOpenSearch={() => setActiveTab('discover')}
           onOpenFavorites={() => setActiveTab('library')}
           onOpenProfile={() => setIsProfileOpen(true)}
-          title={activeTab === 'discover' ? 'Discover' : activeTab === 'library' ? 'VAAN MUSIC' : undefined}
+          title={activeTab === 'discover' ? 'Discover' : activeTab === 'library' ? 'EVA MUSIC' : undefined}
         />
 
         {/* Tab Content */}

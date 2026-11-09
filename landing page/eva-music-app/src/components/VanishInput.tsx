@@ -18,7 +18,7 @@ export const VanishInput: React.FC<VanishInputProps> = ({
   placeholder = 'yo@gxuri.me',
   placeholders = [
     'yo@gxuri.me',
-    'samantha@vaanmusic.app',
+    'samantha@evamusic.app',
     'your.email@gmail.com',
     'synthwave@beats.io',
     'listener@cosmic.fm'
