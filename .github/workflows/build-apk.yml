@@ -45,30 +45,10 @@ jobs:
           npx cap add android
           # Enable cleartext HTTP traffic for media streams if needed
           sed -i 's/<application/<application android:usesCleartextTraffic="true"/' android/app/src/main/AndroidManifest.xml
-          
-          # Fix Kotlin stdlib duplicate classes across modules
-          cat << 'EOF' >> android/build.gradle
-
-allprojects {
-    configurations.all {
-        exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk7'
-        exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk8'
-    }
-}
-EOF
-
-          cat << 'EOF' >> android/app/build.gradle
-
-configurations.all {
-    exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk7'
-    exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk8'
-}
-
-dependencies {
-    implementation platform('org.jetbrains.kotlin:kotlin-bom:1.8.22')
-}
-EOF
-
+          # Fix Kotlin stdlib duplicate classes
+          echo "allprojects { configurations.all { exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk7'; exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk8' } }" >> android/build.gradle
+          echo "configurations.all { exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk7'; exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk8' }" >> android/app/build.gradle
+          echo "dependencies { implementation platform('org.jetbrains.kotlin:kotlin-bom:1.8.22') }" >> android/app/build.gradle
           npx cap sync android
 
       - name: Build Debug APK
