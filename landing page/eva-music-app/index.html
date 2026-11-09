@@ -1062,9 +1062,7 @@ async function loadLibrary(){
 }
 async function loadTrending(){
   try {
-    const response = await fetch('/api/recommendations?limit=20'+langQ(), {signal:AbortSignal.timeout(30000)});
-    if (!response.ok) throw new Error(`Recommendations API returned ${response.status}`);
-    const data = await response.json();
+    const data = await api('/api/recommendations?limit=20'+langQ());
     if (!Array.isArray(data.recommendations)) throw new Error('Recommendations API returned invalid data');
     S.trending = ingestAll(data.recommendations);
   }
