@@ -5,7 +5,17 @@ import {defineConfig} from 'vite';
 
 export default defineConfig(() => {
   return {
-    plugins: [react(), tailwindcss()],
+    plugins: [
+      react(),
+      tailwindcss(),
+      {
+        name: 'eva-api-origin',
+        transformIndexHtml(html) {
+          const apiOrigin = JSON.stringify((process.env.VITE_API_ORIGIN || '').replace(/\/+$/, ''));
+          return html.replace('</head>', `<script>window.EVA_API_ORIGIN=${apiOrigin};</script></head>`);
+        },
+      },
+    ],
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),

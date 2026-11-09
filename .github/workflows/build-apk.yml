@@ -36,6 +36,8 @@ jobs:
           cd "landing page/eva-music-app"
           npm install
           npm run build
+        env:
+          VITE_API_ORIGIN: https://eva-music-app.vercel.app
 
       - name: Setup Capacitor & Android Platform
         run: |

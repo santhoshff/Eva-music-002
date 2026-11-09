@@ -635,6 +635,8 @@ const PLAYLISTS = [];
 const HISTORY = [];
 const PLAYS = {};
 const LIKED = {id:'liked', name:'Liked songs', pin:true, date:'Your favorites', tracks:[], virtual:true};
+const API_ORIGIN = String(window.EVA_API_ORIGIN || '').replace(/\/+$/, '');
+const appApiUrl = path => API_ORIGIN ? API_ORIGIN + (path.startsWith('/') ? path : '/'+path) : path;
 const LANGS = [['','All'],['en','English'],['ta','Tamil'],['hi','Hindi'],['ml','Malayalam']];
 const langQ = () => S.lang ? '&lang='+S.lang : '';
 const GENRES = ['Pop','Rock','Electronic','Hip-hop','Jazz','Classical','Ambient','Chillout','Lounge','Folk','Metal','Reggae','Piano','Indie'];
@@ -917,7 +919,7 @@ async function jSearch(q, type, lang){
 async function jRecs(genre, limit, lang){ return useJam() ? jamRecs(genre, limit, lang) : audRecs(genre, limit, lang); }
 async function jRaw(id){
   if (isAud(id)) return {audio:audStream(id)};
-  if (String(id).startsWith('saavn-')) return {audio:'/api/stream?trackId='+encodeURIComponent(id)};
+  if (String(id).startsWith('saavn-')) return {audio:appApiUrl('/api/stream?trackId='+encodeURIComponent(id))};
   if (isItn(id)){ const r = (await itn('lookup', {id:String(id).slice(4)}))[0]; return r ? {audio:r.previewUrl} : null; }
   return jamRaw(id);
 }
@@ -968,7 +970,7 @@ async function api(path, opts){
     try {
       const params = new URLSearchParams({q:query, type});
       if (lang) params.set('lang', lang);
-      const response = await fetch('/api/search?'+params.toString(), {signal:AbortSignal.timeout(6000)});
+      const response = await fetch(appApiUrl('/api/search?'+params.toString()), {signal:AbortSignal.timeout(6000)});
       if (!response.ok) throw new Error(`Search API returned ${response.status}`);
       const data = await response.json();
       if (Array.isArray(data.results)) backendResults = data.results;
@@ -1020,7 +1022,7 @@ function playbackUrl(url){
   try {
     const parsed = new URL(url, location.href);
     if (parsed.protocol === 'https:' && (parsed.hostname === 'saavncdn.com' || parsed.hostname.endsWith('.saavncdn.com'))) {
-      return '/api/stream?url='+encodeURIComponent(parsed.href);
+      return appApiUrl('/api/stream?url='+encodeURIComponent(parsed.href));
     }
   } catch(e) {
     console.warn('[Eva Music] Invalid track audio URL.', e);
