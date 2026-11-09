@@ -9,5 +9,9 @@
   },
   "devDependencies": {
     "concurrently": "^9.2.4"
+  },
+  "dependencies": {
+    "crypto-js": "^4.2.0",
+    "ffmpeg-static": "^5.2.0"
   }
 }

@@ -1,5 +1,5 @@
 {
-  "installCommand": "cd \"landing page/eva-music-app\" && npm install",
+  "installCommand": "npm install && cd \"landing page/eva-music-app\" && npm install",
   "buildCommand": "cd \"landing page/eva-music-app\" && npm run build",
   "outputDirectory": "landing page/eva-music-app/dist",
   "rewrites": [

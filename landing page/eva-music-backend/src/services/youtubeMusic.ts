@@ -137,7 +137,7 @@ export function decryptSaavnMediaUrl(encryptedUrl: string): string | null {
     );
     const url = decrypted.toString(CryptoJS.enc.Utf8);
     if (!url || !url.startsWith('http')) return null;
-    return url;
+    return url.replace('_96.mp4', '_320.mp4').replace('_160.mp4', '_320.mp4');
   } catch (err) {
     return null;
   }
@@ -161,12 +161,26 @@ function cleanString(str: string): string {
     .trim();
 }
 
+const LANGUAGE_NAMES: Record<string, string> = {
+  en: 'english',
+  ta: 'tamil',
+  hi: 'hindi',
+  ml: 'malayalam',
+};
+
+function matchesLanguage(value: string | undefined, language: string): boolean {
+  const expected = LANGUAGE_NAMES[language];
+  return !expected || (value || '').toLowerCase().trim() === expected;
+}
+
 /**
- * Searches and retrieves full-length 320kbps songs via direct CDN and iTunes
+ * Searches and retrieves full-length tracks from JioSaavn.
  */
-export async function searchYouTubeMusic(query: string, type: string = 'song'): Promise<TrackItem[]> {
+export async function searchYouTubeMusic(query: string, type: string = 'song', language = ''): Promise<TrackItem[]> {
   const cleanQ = query.trim();
-  const cacheKey = `search_full:${type}:${cleanQ.toLowerCase()}`;
+  const selectedLanguage = LANGUAGE_NAMES[language.toLowerCase()] ? language.toLowerCase() : '';
+  const searchQuery = selectedLanguage ? `${cleanQ} ${LANGUAGE_NAMES[selectedLanguage]}` : cleanQ;
+  const cacheKey = `search_full_v2:${type}:${selectedLanguage}:${cleanQ.toLowerCase()}`;
   const cached = await getCache(cacheKey);
   if (cached) {
     try {
@@ -180,7 +194,7 @@ export async function searchYouTubeMusic(query: string, type: string = 'song'): 
 
   // Engine 1: JioSaavn Full-Length 320kbps Master Audio Direct Search
   try {
-    const saavnSearchUrl = `https://www.jiosaavn.com/api.php?__call=search.getResults&_format=json&cc=in&_marker=0&q=${encodeURIComponent(cleanQ)}`;
+    const saavnSearchUrl = `https://www.jiosaavn.com/api.php?__call=search.getResults&_format=json&cc=in&_marker=0&q=${encodeURIComponent(searchQuery)}`;
     const res = await fetch(saavnSearchUrl, {
       headers: { 'User-Agent': 'Mozilla/5.0' },
       signal: AbortSignal.timeout(5000)
@@ -192,6 +206,7 @@ export async function searchYouTubeMusic(query: string, type: string = 'song'): 
 
       for (const s of results) {
         if (!s.encrypted_media_url) continue;
+        if (!matchesLanguage(s.language, selectedLanguage)) continue;
         const songName = s.song || s.title || '';
         const isBgm = /\b(bgm|theme|instrumental|karaoke|cover|ringtone|dialogue)\b/i.test(songName);
         const queryWantsBgm = /\b(bgm|theme|instrumental|karaoke|cover)\b/i.test(cleanQ);
@@ -260,6 +275,7 @@ export async function searchYouTubeMusic(query: string, type: string = 'song'): 
 
               for (const s of songList.slice(0, 2)) {
                 if (!s.encrypted_media_url) continue;
+                if (!matchesLanguage(s.language || alb.language, selectedLanguage)) continue;
                 const full320Url = decryptSaavnMediaUrl(s.encrypted_media_url);
                 if (!full320Url) continue;
 
@@ -294,57 +310,6 @@ export async function searchYouTubeMusic(query: string, type: string = 'song'): 
       }
     } catch (err: any) {
       console.warn('[FullSongSearch] JioSaavn album fallback notice:', err?.message || err);
-    }
-  }
-
-  // Engine 2: iTunes Search Backup (stores track_query for full song streaming)
-  if (tracks.length < 5) {
-    try {
-      const itunesUrl = `https://itunes.apple.com/search?entity=song&limit=10&term=${encodeURIComponent(cleanQ)}`;
-      const res = await fetch(itunesUrl, { signal: AbortSignal.timeout(5000) });
-      if (res.ok) {
-        const data: any = await res.json();
-        const results = data.results || [];
-
-        for (const item of results) {
-          const durSecs = item.trackTimeMillis ? Math.round(item.trackTimeMillis / 1000) : 218;
-          const cover600 = (item.artworkUrl100 || '')
-            .replace('100x100bb.jpg', '600x600bb.jpg')
-            .replace('100x100bb.png', '600x600bb.png');
-
-          const trackId = `itunes-${item.trackId}`;
-
-          const alreadyExists = tracks.some(t =>
-            t.title.toLowerCase() === item.trackName.toLowerCase() || (cover600 && t.coverUrl === cover600)
-          );
-          if (alreadyExists) continue;
-
-          // Store the exact track query and preview so getStreamUrl can resolve or fallback safely
-          const queryStr = `${item.trackName} ${item.artistName}`;
-          await setCache(`track_query:${trackId}`, queryStr, 86400 * 7);
-          if (item.previewUrl) {
-            await setCache(`itunes_preview:${trackId}`, item.previewUrl, 86400 * 7);
-          }
-
-          tracks.push({
-            id: trackId,
-            title: cleanString(item.trackName || 'Unknown Track'),
-            artist: cleanString(item.artistName || 'Unknown Artist'),
-            album: cleanString(item.collectionName || 'Single'),
-            duration: formatDuration(durSecs),
-            durationSeconds: durSecs,
-            coverUrl: cover600 || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=600&q=80',
-            genre: item.primaryGenreName || 'Music',
-            audioUrl: `/api/stream/${trackId}`,
-            fallbackAudioUrl: item.previewUrl || `/api/stream/${trackId}`,
-            releaseYear: item.releaseDate ? item.releaseDate.substring(0, 4) : '2025',
-            plays: '5.2M',
-            isLiked: false,
-          });
-        }
-      }
-    } catch (err: any) {
-      console.warn('[FullSongSearch] iTunes search notice:', err?.message || err);
     }
   }
 
@@ -434,7 +399,7 @@ function normalizeTrackText(str: string): string {
  */
 export async function getStreamUrl(trackId: string): Promise<string | null> {
   const cacheKey = `stream:${trackId}`;
-  const cached = await getCache(cacheKey);
+  const cached = trackId.startsWith('itunes-') ? null : await getCache(cacheKey);
   if (cached && cached.startsWith('http')) return cached;
 
   const cleanId = trackId.replace(/^(yt-|itunes-|saavn-|local-)/, '');
@@ -479,7 +444,6 @@ export async function getStreamUrl(trackId: string): Promise<string | null> {
   let targetTitle = '';
   let targetArtist = '';
   let targetAlbum = '';
-  let itunesFallbackPreview: string | null = null;
 
   if (trackId.startsWith('itunes-')) {
     try {
@@ -491,16 +455,12 @@ export async function getStreamUrl(trackId: string): Promise<string | null> {
           targetTitle = itunesItem.trackName || '';
           targetArtist = itunesItem.artistName || '';
           targetAlbum = itunesItem.collectionName || '';
-          if (itunesItem.previewUrl) itunesFallbackPreview = itunesItem.previewUrl;
           query = `${targetTitle} ${targetArtist}`.trim();
           await setCache(`track_query:${trackId}`, query, 86400 * 7);
         }
       }
     } catch (err: any) {
       console.warn(`[StreamEngine] iTunes lookup warning for ${trackId}:`, err?.message || err);
-    }
-    if (!itunesFallbackPreview) {
-      itunesFallbackPreview = await getCache(`itunes_preview:${trackId}`);
     }
   }
 
@@ -512,7 +472,7 @@ export async function getStreamUrl(trackId: string): Promise<string | null> {
   }
 
   if (!query) {
-    return itunesFallbackPreview;
+    return null;
   }
 
   // Clean title for searching
@@ -578,35 +538,33 @@ export async function getStreamUrl(trackId: string): Promise<string | null> {
     }
   }
 
-  // Safety net fallback so player never crashes with 404
-  if (itunesFallbackPreview) {
-    console.log(`[StreamEngine] Using iTunes preview fallback for ${trackId}`);
-    return itunesFallbackPreview;
-  }
-
   return null;
 }
 
-export async function getRelatedRecommendations(trackId?: string, genre?: string): Promise<TrackItem[]> {
-  const seeds = [
-    genre ? `${genre} trending` : 'trending tamil hits',
-    'viral chart hits',
-    'top global pop hits',
-    'trending romantic songs',
-    'latest mass anthem'
-  ];
+export async function getRelatedRecommendations(trackId?: string, genre?: string, language = ''): Promise<TrackItem[]> {
+  const selectedLanguage = LANGUAGE_NAMES[language.toLowerCase()] ? language.toLowerCase() : '';
+  const languageName = LANGUAGE_NAMES[selectedLanguage];
+  const seeds = languageName
+    ? genre
+      ? [`${genre} trending`, `${genre} popular`, `${genre} hits`]
+      : [`trending ${languageName} hits`, `viral ${languageName} chart hits`, `popular ${languageName} songs`, `latest ${languageName} hits`]
+    : [
+        genre ? `${genre} trending` : 'trending tamil hits',
+        'viral chart hits',
+        'top global pop hits',
+        'trending romantic songs',
+        'latest mass anthem'
+      ];
 
-  const pool: TrackItem[] = [];
-  for (const seed of seeds) {
+  const results = await Promise.all(seeds.map(async seed => {
     try {
-      const res = await searchYouTubeMusic(seed, 'song');
-      if (res && res.length > 0) {
-        pool.push(...res);
-      }
-    } catch {
-      // Continue next seed
+      return await searchYouTubeMusic(seed, 'song', selectedLanguage);
+    } catch (error) {
+      console.warn(`[Recommendations] Search failed for "${seed}":`, error);
+      return [];
     }
-  }
+  }));
+  const pool = results.flat();
 
   // Strictly deduplicate by unique coverUrl, title, and cap per-artist occurrences
   const seenCovers = new Set<string>();

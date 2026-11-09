@@ -3,13 +3,13 @@ import { searchYouTubeMusic } from '../services/youtubeMusic.js';
 
 export async function searchRoutes(fastify: FastifyInstance) {
   fastify.get('/api/search', async (request, reply) => {
-    const { q, type } = request.query as { q?: string; type?: string };
+    const { q, type, lang } = request.query as { q?: string; type?: string; lang?: string };
     if (!q || q.trim().length === 0) {
       return reply.code(400).send({ error: 'Query parameter "q" is required' });
     }
 
     try {
-      const results = await searchYouTubeMusic(q.trim(), type || 'song');
+      const results = await searchYouTubeMusic(q.trim(), type || 'song', lang);
       return reply.send({ query: q, type: type || 'song', results });
     } catch (err: any) {
       request.log.error(err);

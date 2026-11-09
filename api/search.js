@@ -30,6 +30,19 @@ function cleanText(text) {
     .trim();
 }
 
+const LANGUAGE_NAMES = {
+  en: 'english',
+  ta: 'tamil',
+  hi: 'hindi',
+  ml: 'malayalam',
+};
+
+function matchesLanguage(value, language) {
+  const expected = LANGUAGE_NAMES[language];
+  if (!expected) return true;
+  return String(value || '').toLowerCase().trim() === expected;
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
@@ -40,12 +53,15 @@ export default async function handler(req, res) {
   }
 
   const q = req.query.q || '';
+  const language = String(req.query.lang || '').toLowerCase();
   if (!q || q.trim().length < 2) {
     return res.status(200).json({ results: [] });
   }
 
   try {
-    const saavnUrl = `https://www.jiosaavn.com/api.php?__call=search.getResults&_format=json&cc=in&_marker=0&n=25&p=1&q=${encodeURIComponent(q.trim())}`;
+    const languageName = LANGUAGE_NAMES[language];
+    const searchQuery = languageName ? `${q.trim()} ${languageName}` : q.trim();
+    const saavnUrl = `https://www.jiosaavn.com/api.php?__call=search.getResults&_format=json&cc=in&_marker=0&n=25&p=1&q=${encodeURIComponent(searchQuery)}`;
     const response = await fetch(saavnUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
@@ -69,6 +85,7 @@ export default async function handler(req, res) {
 
     for (const item of items) {
       if (!item.encrypted_media_url) continue;
+      if (!matchesLanguage(item.language, language)) continue;
       const audioUrl = decryptSaavnMediaUrl(item.encrypted_media_url);
       if (!audioUrl) continue;
 
