@@ -1079,6 +1079,7 @@ async function loadArtist(id){
   try { const r = await api('/api/search?type=artist&q='+encodeURIComponent(a.name)); ingestAll((r.results||[]).filter(x=>x.artistId===id)); refresh('artist-'+id); } catch(e){}
 }
 let searchSeq = 0, searchT = 0;
+const SEARCH_STOP_WORDS = new Set(['a','an','and','by','for','from','in','of','on','song','the','to','track']);
 function runSearch(q){
   clearTimeout(searchT); q = q.trim();
   if (!q){ S.results = []; S.searching = false; return; }
@@ -1090,8 +1091,13 @@ function runSearch(q){
       let ids = await get(q);
       if (my!==searchSeq) return;
       const words = norm(q).split(' ').filter(w=>w.length>2);
-      if (ids.length < 6 && words.length > 1){            // broaden: search the strongest single words too
-        const extra = await Promise.all(words.sort((a,b)=>b.length-a.length).slice(0,2).map(w=>get(w).catch(()=>[])));
+      const meaningfulWords = words.filter(w=>!SEARCH_STOP_WORDS.has(w));
+      const hasTitleMatch = ids.some(id=>{
+        const title = norm(TR[id]?.title).split(' ');
+        return meaningfulWords.some(word=>title.some(part=>part===word || part.startsWith(word)));
+      });
+      if ((ids.length < 6 || !hasTitleMatch) && meaningfulWords.length > 1){
+        const extra = await Promise.all(meaningfulWords.sort((a,b)=>b.length-a.length).slice(0,2).map(w=>get(w).catch(()=>[])));
         ids = [...new Set([...ids, ...extra.flat()])];
       }
       if (ids.length < 3){                                  // spelling rescue: collapse doubled letters (karrupu -> karupu), then drop the last letter
@@ -1195,7 +1201,11 @@ function loadCurrent(autoplay){
     setMediaSession();
     return;
   }
-  if (t.src){ audio.src = t.src; startPlayback(); }
+  if (String(id).startsWith('saavn-')){
+    t.src = appApiUrl('/api/stream?trackId='+encodeURIComponent(id)+'&v='+Date.now());
+    audio.src = t.src;
+    startPlayback();
+  } else if (t.src){ audio.src = t.src; startPlayback(); }
   else {
     audio.pause();
     audio.removeAttribute('src');
@@ -1220,7 +1230,7 @@ audio.addEventListener('ended', ()=>nextTrack(true));
 audio.addEventListener('error', ()=>{
   const t = TR[S.cur];
   if (!t || !audio.src) return;
-  if (t.fallbackSrc && t.src !== t.fallbackSrc && !t.fallbackTried){
+  if (!String(t.id).startsWith('saavn-') && t.fallbackSrc && t.src !== t.fallbackSrc && !t.fallbackTried){
     t.fallbackTried = true;
     audio.src = t.fallbackSrc;
     audio.play().catch(()=>{});
@@ -1361,7 +1371,8 @@ function score(t, q){
   const title = norm(t.title), art = norm(ART[t.ar].name), words = (title+' '+art).split(' '); let sc = 0;
   if (title===nq) sc += 100; else if (title.startsWith(nq)) sc += 80; else if (title.includes(nq)) sc += 60;
   if (art===nq) sc += 70; else if (art.includes(nq)) sc += 45;
-  const toks = nq.split(' '); let hit = 0;
+  const toks = nq.split(' ').filter(token=>!SEARCH_STOP_WORDS.has(token)); let hit = 0;
+  if (!toks.length) return sc;
   for (const tk of toks){ if (words.some(w=>w===tk || w.startsWith(tk))) hit++; else if (tk.length>3 && words.some(w=>lev1(w,tk))) hit += .6; }
   return sc + 30*hit/toks.length;
 }
