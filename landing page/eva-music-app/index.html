@@ -1029,6 +1029,15 @@ function playbackUrl(url){
   }
   return url;
 }
+async function refreshSaavnAudio(t){
+  const query = [t.title, ART[t.ar]?.name].filter(Boolean).join(' ');
+  const response = await fetch(appApiUrl('/api/search?'+new URLSearchParams({q:query})), {signal:AbortSignal.timeout(6000)});
+  if (!response.ok) throw new Error(`Track refresh returned ${response.status}`);
+  const data = await response.json();
+  const match = Array.isArray(data.results) && data.results.find(track=>track.id===t.id && typeof track.audioUrl==='string');
+  if (!match) throw new Error(`Fresh audio URL not found for ${t.title}`);
+  return match.audioUrl;
+}
 function ingest(x){ // x: backend TrackItem
   const arId = x.artistId || ('a'+hash(x.artist||'?').toString(36));
   const alId = x.albumId || ('b'+hash((x.album||x.title)+(x.artist||'')).toString(36));
@@ -1230,6 +1239,32 @@ audio.addEventListener('ended', ()=>nextTrack(true));
 audio.addEventListener('error', ()=>{
   const t = TR[S.cur];
   if (!t || !audio.src) return;
+  if (String(t.id).startsWith('saavn-') && !t.fallbackTried){
+    t.fallbackTried = true;
+    const failedSrc = audio.src;
+    refreshSaavnAudio(t).then(url=>{
+      if (S.cur!==t.id || audio.src!==failedSrc) return;
+      t.fallbackSrc = url;
+      t.src = playbackUrl(url);
+      audio.src = t.src;
+      const p = audio.play();
+      if (p && p.catch) p.catch(error=>{
+        if (S.cur===t.id && error.name!=='AbortError'){
+          S.playing = false;
+          syncPlayState();
+          toast('Tap play to start');
+        }
+      });
+    }).catch(error=>{
+      console.error('[Eva Music] Saavn stream refresh failed.', error);
+      if (S.cur===t.id){
+        S.playing = false;
+        syncPlayState();
+        toast('Could not refresh this track');
+      }
+    });
+    return;
+  }
   if (!String(t.id).startsWith('saavn-') && t.fallbackSrc && t.src !== t.fallbackSrc && !t.fallbackTried){
     t.fallbackTried = true;
     audio.src = t.fallbackSrc;
